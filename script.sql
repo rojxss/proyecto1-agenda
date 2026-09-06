@@ -104,3 +104,5 @@ CREATE TRIGGER trg_evitar_ciclo
 BEFORE INSERT OR UPDATE ON categorias
 FOR EACH ROW EXECUTE FUNCTION evitar_ciclo_categorias();
 
+-- Configura que las conexiones nuevas (incluyendo la app Python) busquen las tablas en el esquema prototipo por defecto ALTER DATABASE agenda SET search_path TO prototipo, public;
+ALTER DATABASE agenda SET search_path TO prototipo, public
