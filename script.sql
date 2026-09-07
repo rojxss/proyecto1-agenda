@@ -1,3 +1,7 @@
+-- Limpieza inicial: permite ejecutar este script las veces que sea necesario
+-- sin errores, sin importar si el esquema ya existía de un intento anterior.
+DROP SCHEMA IF EXISTS prototipo CASCADE;
+
 -- Crear la base de datos
 --CREATE DATABASE agenda;
 CREATE SCHEMA prototipo;
@@ -68,16 +72,16 @@ CREATE TABLE log_accesos (
 
 -- Vista para Antigüedad
 CREATE VIEW vista_antiguedad_usuarios AS
-SELECT 
-    id_usuario, 
-    nombre, 
+SELECT
+    id_usuario,
+    nombre,
     fecha_registro,
     age(CURRENT_DATE, fecha_registro) AS antiguedad
 FROM usuarios;
 
 -- Vista para Duración de eventos diarios
 CREATE VIEW vista_duracion_eventos_diarios AS
-SELECT 
+SELECT
     id_usuario_propietario,
     fecha_inicio::DATE AS dia,
     SUM(EXTRACT(EPOCH FROM (fecha_fin - fecha_inicio))/60) AS duracion_total_minutos
@@ -85,7 +89,7 @@ FROM eventos
 GROUP BY id_usuario_propietario, fecha_inicio::DATE;
 
 --Integridad y Prevención de Ciclos (RE05)
---Para evitar ciclos en la jerarquía de categorías, podemos usar una función 
+--Para evitar ciclos en la jerarquía de categorías, podemos usar una función
 --que verifique el ancestro antes de insertar o actualizar:
 
 CREATE OR REPLACE FUNCTION evitar_ciclo_categorias()
@@ -94,7 +98,7 @@ BEGIN
     IF NEW.id_categoria_padre = NEW.id_categoria THEN
         RAISE EXCEPTION 'Una categoría no puede ser padre de sí misma.';
     END IF;
-    -- Aquí se podría añadir una consulta recursiva para validar ancestros, 
+    -- Aquí se podría añadir una consulta recursiva para validar ancestros,
     -- pero para Postgres 14 es altamente eficiente usar el camino (path) o este chequeo simple.
     RETURN NEW;
 END;
@@ -104,5 +108,49 @@ CREATE TRIGGER trg_evitar_ciclo
 BEFORE INSERT OR UPDATE ON categorias
 FOR EACH ROW EXECUTE FUNCTION evitar_ciclo_categorias();
 
--- Configura que las conexiones nuevas (incluyendo la app Python) busquen las tablas en el esquema prototipo por defecto ALTER DATABASE agenda SET search_path TO prototipo, public;
-ALTER DATABASE agenda SET search_path TO prototipo, public
+-- ============================================================
+-- AMPLIACIÓN: MÓDULO DE UBICACIONES (RF-08, RF-09, RF-10)
+-- ============================================================
+
+-- 7. Ubicaciones (RF-08, RF-09, RF-10)
+CREATE TABLE ubicaciones (
+    id_ubicacion SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    direccion VARCHAR(150),
+    capacidad INT CHECK (capacidad > 0)
+);
+
+-- Se conecta la ubicación con eventos: cada evento puede ocurrir en una ubicación (RF-09)
+ALTER TABLE eventos
+    ADD COLUMN id_ubicacion INT REFERENCES ubicaciones(id_ubicacion);
+
+-- Prevención de Traslapes de Horario en una misma Ubicación (RF-10)
+-- Antes de insertar o actualizar un evento con ubicación asignada, se revisa
+-- si ya existe otro evento en esa misma ubicación cuyo horario se cruce.
+CREATE OR REPLACE FUNCTION evitar_traslape_ubicacion()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.id_ubicacion IS NOT NULL THEN
+        IF EXISTS (
+            SELECT 1 FROM eventos
+            WHERE id_ubicacion = NEW.id_ubicacion
+              AND id_evento <> COALESCE(NEW.id_evento, -1)
+              AND fecha_inicio < NEW.fecha_fin
+              AND fecha_fin > NEW.fecha_inicio
+        ) THEN
+            RAISE EXCEPTION 'Ya existe otro evento en esta ubicación en un horario que se cruza.';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_evitar_traslape_ubicacion
+BEFORE INSERT OR UPDATE ON eventos
+FOR EACH ROW EXECUTE FUNCTION evitar_traslape_ubicacion();
+
+-- ============================================================
+-- Configuración final: para que cualquier conexión nueva (incluida
+-- la app Python) busque las tablas en el esquema prototipo por defecto
+-- ============================================================
+ALTER DATABASE agenda SET search_path TO prototipo, public;
