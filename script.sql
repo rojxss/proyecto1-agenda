@@ -178,6 +178,26 @@ FROM disponibilidad d
 JOIN usuarios u ON u.id_usuario = d.id_usuario
 ORDER BY d.fecha, d.hora_inicio;
 
+-- 9. Tareas Asociadas a Eventos (RF-15, RF-16, RF-17)
+CREATE TABLE tareas (
+    id_tarea SERIAL PRIMARY KEY,
+    titulo VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    prioridad VARCHAR(10) NOT NULL DEFAULT 'media'
+        CHECK (prioridad IN ('baja', 'media', 'alta')),
+    estado VARCHAR(20) NOT NULL DEFAULT 'pendiente'
+        CHECK (estado IN ('pendiente', 'en progreso', 'completada')),
+    fecha_limite DATE,
+    id_evento INT NOT NULL REFERENCES eventos(id_evento) ON DELETE CASCADE,
+    id_usuario_responsable INT REFERENCES usuarios(id_usuario)
+);
+
+
+
+
+
+
+
 
 
 -- ============================================================
