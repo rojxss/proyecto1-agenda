@@ -109,7 +109,7 @@ BEFORE INSERT OR UPDATE ON categorias
 FOR EACH ROW EXECUTE FUNCTION evitar_ciclo_categorias();
 
 -- ============================================================
--- AMPLIACIÓN: MÓDULO DE UBICACIONES (RF-08, RF-09, RF-10)
+-- MÓDULO DE UBICACIONES (RF-08, RF-09, RF-10)
 -- ============================================================
 
 -- 7. Ubicaciones (RF-08, RF-09, RF-10)
@@ -148,6 +148,34 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_evitar_traslape_ubicacion
 BEFORE INSERT OR UPDATE ON eventos
 FOR EACH ROW EXECUTE FUNCTION evitar_traslape_ubicacion();
+
+-- ============================================================
+-- MÓDULO DE DISPONIBILIDAD DE USUARIOS (RF-11, RF-12)
+-- ============================================================
+
+-- 8. Disponibilidad de Usuarios (RF-11, RF-12)
+CREATE TABLE disponibilidad (
+    id_disponibilidad SERIAL PRIMARY KEY,
+    id_usuario INT NOT NULL REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+    fecha DATE NOT NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL,
+    CONSTRAINT check_horas_disponibilidad CHECK (hora_fin > hora_inicio)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 -- ============================================================
 -- Configuración final: para que cualquier conexión nueva (incluida
