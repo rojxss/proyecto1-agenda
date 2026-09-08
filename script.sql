@@ -163,17 +163,20 @@ CREATE TABLE disponibilidad (
     CONSTRAINT check_horas_disponibilidad CHECK (hora_fin > hora_inicio)
 );
 
-
-
-
-
-
-
-
-
-
-
-
+-- Vista de apoyo: permite consultar rápidamente los bloques de disponibilidad
+-- de cada usuario, útil antes de agendarle un evento (RF-12)
+CREATE VIEW vista_disponibilidad_usuarios AS
+SELECT
+    d.id_disponibilidad,
+    d.id_usuario,
+    u.nombre,
+    u.apellido,
+    d.fecha,
+    d.hora_inicio,
+    d.hora_fin
+FROM disponibilidad d
+JOIN usuarios u ON u.id_usuario = d.id_usuario
+ORDER BY d.fecha, d.hora_inicio;
 
 
 
