@@ -791,10 +791,105 @@ class AppAgenda(ctk.CTk):
 
         self.limpiar_form_disponibilidad()
 
-    # NOTA: las funciones cargar_disponibilidad_seleccionada, limpiar_form_disponibilidad,
-    # agregar_disponibilidad, actualizar_disponibilidad, eliminar_disponibilidad y
-    # cargar_datos_disponibilidad se agregan en el Archivo B (versión completa).
-    # Este archivo A es SOLO para el commit de "estructura" — no lo ejecutes todavía.
+    def disponibilidad_seleccionada_id(self):
+        sel = self.tree_disponibilidad.selection()
+        return self.tree_disponibilidad.item(sel[0])["values"][0] if sel else None
+
+    def cargar_disponibilidad_seleccionada(self, _=None):
+        sel = self.tree_disponibilidad.selection()
+        if not sel:
+            return
+        vals = self.tree_disponibilidad.item(sel[0])["values"]
+        self.combo_disp_usuario.set(vals[1] if vals[1] in self.usuarios_combo else "Seleccione un usuario")
+        try:
+            fecha = datetime.strptime(str(vals[2]), "%Y-%m-%d")
+            self.establecer_fecha(self.fecha_disponibilidad, fecha)
+        except ValueError:
+            pass
+        self.entry_disp_hora_inicio.delete(0, tk.END); self.entry_disp_hora_inicio.insert(0, vals[3])
+        self.entry_disp_hora_fin.delete(0, tk.END); self.entry_disp_hora_fin.insert(0, vals[4])
+
+    def limpiar_form_disponibilidad(self):
+        self.tree_disponibilidad.selection_remove(self.tree_disponibilidad.selection())
+        self.combo_disp_usuario.set("Seleccione un usuario")
+        self.establecer_fecha(self.fecha_disponibilidad, datetime.now())
+        self.entry_disp_hora_inicio.delete(0, tk.END); self.entry_disp_hora_inicio.insert(0, "09:00")
+        self.entry_disp_hora_fin.delete(0, tk.END); self.entry_disp_hora_fin.insert(0, "17:00")
+
+    def _datos_disponibilidad_formulario(self):
+        usuario = self.usuarios_combo.get(self.combo_disp_usuario.get())
+        if usuario is None:
+            raise ValueError("Selecciona un usuario.")
+        fecha = self.obtener_fecha(self.fecha_disponibilidad)
+        hora_inicio = self.entry_disp_hora_inicio.get().strip()
+        hora_fin = self.entry_disp_hora_fin.get().strip()
+        try:
+            datetime.strptime(hora_inicio, "%H:%M")
+            datetime.strptime(hora_fin, "%H:%M")
+        except ValueError:
+            raise ValueError("Las horas deben tener formato HH:MM, por ejemplo 09:00.")
+        if hora_fin <= hora_inicio:
+            raise ValueError("La hora de fin debe ser posterior a la hora de inicio.")
+        return usuario, fecha, hora_inicio, hora_fin
+
+    def agregar_disponibilidad(self):
+        try:
+            usuario, fecha, hora_inicio, hora_fin = self._datos_disponibilidad_formulario()
+            self.ejecutar_consulta(
+                "INSERT INTO disponibilidad (id_usuario, fecha, hora_inicio, hora_fin) VALUES (%s, %s, %s, %s)",
+                (usuario, fecha, hora_inicio, hora_fin)
+            )
+            self.limpiar_form_disponibilidad(); self.cargar_datos_disponibilidad()
+            messagebox.showinfo("Éxito", "Disponibilidad registrada correctamente.")
+        except Exception as e:
+            messagebox.showerror("No se pudo registrar", str(e))
+
+    def actualizar_disponibilidad(self):
+        did = self.disponibilidad_seleccionada_id()
+        if did is None:
+            return messagebox.showwarning("Selección requerida", "Selecciona un bloque de disponibilidad.")
+        try:
+            usuario, fecha, hora_inicio, hora_fin = self._datos_disponibilidad_formulario()
+            self.ejecutar_consulta(
+                "UPDATE disponibilidad SET id_usuario=%s, fecha=%s, hora_inicio=%s, hora_fin=%s WHERE id_disponibilidad=%s",
+                (usuario, fecha, hora_inicio, hora_fin, did)
+            )
+            self.cargar_datos_disponibilidad()
+            messagebox.showinfo("Éxito", "Disponibilidad actualizada.")
+        except Exception as e:
+            messagebox.showerror("No se pudo actualizar", str(e))
+
+    def eliminar_disponibilidad(self):
+        did = self.disponibilidad_seleccionada_id()
+        if did is None:
+            return messagebox.showwarning("Selección requerida", "Selecciona un bloque de disponibilidad.")
+        if not messagebox.askyesno("Confirmar", "¿Eliminar este bloque de disponibilidad?"):
+            return
+        try:
+            self.ejecutar_consulta("DELETE FROM disponibilidad WHERE id_disponibilidad=%s", (did,))
+            self.limpiar_form_disponibilidad(); self.cargar_datos_disponibilidad()
+            messagebox.showinfo("Eliminada", "Disponibilidad eliminada.")
+        except Exception as e:
+            messagebox.showerror("No se pudo eliminar", str(e))
+
+    def cargar_datos_disponibilidad(self):
+        try:
+            rows = self.ejecutar_consulta("""
+                SELECT id_disponibilidad, id_usuario, nombre, apellido, fecha, hora_inicio, hora_fin
+                FROM vista_disponibilidad_usuarios
+            """, fetch=True)
+            for item in self.tree_disponibilidad.get_children(): self.tree_disponibilidad.delete(item)
+            for row in rows:
+                usuario = f"{row[2]} {row[3]} — #{row[1]}"
+                fecha = row[4].strftime("%Y-%m-%d") if hasattr(row[4], "strftime") else row[4]
+                hora_inicio = row[5].strftime("%H:%M") if hasattr(row[5], "strftime") else str(row[5])[:5]
+                hora_fin = row[6].strftime("%H:%M") if hasattr(row[6], "strftime") else str(row[6])[:5]
+                self.tree_disponibilidad.insert("", "end", values=(row[0], usuario, fecha, hora_inicio, hora_fin))
+
+            valores_u = ["Seleccione un usuario"] + list(self.usuarios_combo.keys())
+            self.combo_disp_usuario.configure(values=valores_u)
+        except Exception as e:
+            print(f"Error cargando disponibilidad: {e}")
 
     # -------------------- REFRESCO GENERAL --------------------
 
@@ -803,7 +898,7 @@ class AppAgenda(ctk.CTk):
         self.cargar_datos_categorias()
         self.cargar_datos_ubicaciones()
         self.cargar_datos_eventos()
-        # self.cargar_datos_disponibilidad()  # se activa en el Archivo B
+        self.cargar_datos_disponibilidad()
 
 
 if __name__ == "__main__":
