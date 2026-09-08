@@ -120,7 +120,7 @@ class AppAgenda(ctk.CTk):
 
         ctk.CTkLabel(
             self.sidebar_frame,
-            text="Gestión de usuarios, categorías, eventos y ubicaciones",
+            text="Gestión de usuarios, categorías, eventos, ubicaciones y disponibilidad",
             font=ctk.CTkFont(size=11),
             wraplength=190,
             justify="left"
@@ -132,6 +132,7 @@ class AppAgenda(ctk.CTk):
             ("Categorías", "📁"),
             ("Eventos", "🗓️"),
             ("Ubicaciones", "📍"),
+            ("Disponibilidad", "🕒"),
         ], start=2):
             btn = ctk.CTkButton(
                 self.sidebar_frame, text=f"{icono}  {nombre}",
@@ -145,7 +146,7 @@ class AppAgenda(ctk.CTk):
             self.sidebar_frame,
             text="🔄  Recargar datos",
             command=self.actualizar_todas_las_tablas
-        ).grid(row=6, column=0, padx=15, pady=(20, 5), sticky="ew")
+        ).grid(row=7, column=0, padx=15, pady=(20, 5), sticky="ew")
 
         ctk.CTkLabel(self.sidebar_frame, text="APARIENCIA", font=ctk.CTkFont(size=11, weight="bold")).grid(
             row=11, column=0, padx=20, pady=(10, 5), sticky="w"
@@ -171,11 +172,13 @@ class AppAgenda(ctk.CTk):
         self.tab_categorias = self.tabview.add("Categorías")
         self.tab_eventos = self.tabview.add("Eventos")
         self.tab_ubicaciones = self.tabview.add("Ubicaciones")
+        self.tab_disponibilidad = self.tabview.add("Disponibilidad")
 
         self.configurar_pestana_usuarios()
         self.configurar_pestana_categorias()
         self.configurar_pestana_eventos()
         self.configurar_pestana_ubicaciones()
+        self.configurar_pestana_disponibilidad()
         self.seleccionar_modulo("Usuarios")
 
     def al_cambiar_pestana(self):
@@ -742,6 +745,57 @@ class AppAgenda(ctk.CTk):
         except Exception as e:
             print(f"Error cargando ubicaciones: {e}")
 
+    # -------------------- DISPONIBILIDAD --------------------
+
+    def configurar_pestana_disponibilidad(self):
+        self.crear_encabezado(
+            self.tab_disponibilidad, "Disponibilidad",
+            "Registra los bloques de horario en que cada usuario está libre."
+        )
+
+        cuerpo = ctk.CTkFrame(self.tab_disponibilidad, fg_color="transparent")
+        cuerpo.pack(fill="both", expand=True, padx=10, pady=5)
+        cuerpo.grid_columnconfigure(0, weight=3); cuerpo.grid_columnconfigure(1, weight=1); cuerpo.grid_rowconfigure(0, weight=1)
+
+        tabla = ctk.CTkFrame(cuerpo); tabla.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        form = ctk.CTkScrollableFrame(cuerpo, width=320); form.grid(row=0, column=1, sticky="nsew")
+
+        self.tree_disponibilidad = self.crear_treeview(
+            tabla, ("ID", "Usuario", "Fecha", "Hora inicio", "Hora fin"), (60, 190, 110, 100, 100)
+        )
+        self.tree_disponibilidad.bind("<<TreeviewSelect>>", self.cargar_disponibilidad_seleccionada)
+
+        ctk.CTkLabel(form, text="Formulario de disponibilidad", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(10, 15))
+
+        ctk.CTkLabel(form, text="Usuario").pack(anchor="w", padx=10, pady=(0, 2))
+        self.combo_disp_usuario = ctk.CTkComboBox(form, values=["Seleccione un usuario"], state="readonly")
+        self.combo_disp_usuario.set("Seleccione un usuario")
+        self.combo_disp_usuario.pack(fill="x", padx=10, pady=4)
+
+        ctk.CTkLabel(form, text="Fecha").pack(anchor="w", padx=10, pady=(10, 2))
+        self.fecha_disponibilidad = self.crear_selector_fecha(form)
+        self.fecha_disponibilidad.pack(fill="x", padx=10, pady=4)
+
+        ctk.CTkLabel(form, text="Hora inicio (HH:MM)").pack(anchor="w", padx=10, pady=(10, 2))
+        self.entry_disp_hora_inicio = ctk.CTkEntry(form, placeholder_text="09:00")
+        self.entry_disp_hora_inicio.pack(fill="x", padx=10, pady=4)
+
+        ctk.CTkLabel(form, text="Hora fin (HH:MM)").pack(anchor="w", padx=10, pady=(10, 2))
+        self.entry_disp_hora_fin = ctk.CTkEntry(form, placeholder_text="17:00")
+        self.entry_disp_hora_fin.pack(fill="x", padx=10, pady=4)
+
+        ctk.CTkButton(form, text="➕ Registrar disponibilidad", command=self.agregar_disponibilidad).pack(fill="x", padx=10, pady=(16, 5))
+        ctk.CTkButton(form, text="💾 Actualizar seleccionada", command=self.actualizar_disponibilidad).pack(fill="x", padx=10, pady=5)
+        ctk.CTkButton(form, text="🧹 Nueva / Limpiar", command=self.limpiar_form_disponibilidad, fg_color="gray").pack(fill="x", padx=10, pady=5)
+        ctk.CTkButton(form, text="🗑️ Eliminar seleccionada", command=self.eliminar_disponibilidad, fg_color="#b33939", hover_color="#8f2d2d").pack(fill="x", padx=10, pady=5)
+
+        self.limpiar_form_disponibilidad()
+
+    # NOTA: las funciones cargar_disponibilidad_seleccionada, limpiar_form_disponibilidad,
+    # agregar_disponibilidad, actualizar_disponibilidad, eliminar_disponibilidad y
+    # cargar_datos_disponibilidad se agregan en el Archivo B (versión completa).
+    # Este archivo A es SOLO para el commit de "estructura" — no lo ejecutes todavía.
+
     # -------------------- REFRESCO GENERAL --------------------
 
     def actualizar_todas_las_tablas(self):
@@ -749,6 +803,7 @@ class AppAgenda(ctk.CTk):
         self.cargar_datos_categorias()
         self.cargar_datos_ubicaciones()
         self.cargar_datos_eventos()
+        # self.cargar_datos_disponibilidad()  # se activa en el Archivo B
 
 
 if __name__ == "__main__":
