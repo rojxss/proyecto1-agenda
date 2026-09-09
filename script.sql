@@ -192,7 +192,19 @@ CREATE TABLE tareas (
     id_usuario_responsable INT REFERENCES usuarios(id_usuario)
 );
 
-
+-- Vista de apoyo: calcula dinámicamente qué tareas están vencidas
+-- (fecha límite ya pasó y aún no están completadas), sin almacenar
+-- ese estado físicamente, igual que se hizo con la antigüedad de usuarios (RF-17)
+CREATE VIEW vista_tareas_vencidas AS
+SELECT
+    t.id_tarea,
+    t.titulo,
+    t.prioridad,
+    t.estado,
+    t.fecha_limite,
+    e.titulo AS evento,
+    u.nombre,
+    u.apellido
 
 
 
