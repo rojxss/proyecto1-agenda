@@ -205,13 +205,11 @@ SELECT
     e.titulo AS evento,
     u.nombre,
     u.apellido
-
-
-
-
-
-
-
+FROM tareas t
+JOIN eventos e ON e.id_evento = t.id_evento
+LEFT JOIN usuarios u ON u.id_usuario = t.id_usuario_responsable
+WHERE t.fecha_limite < CURRENT_DATE
+  AND t.estado <> 'completada';
 -- ============================================================
 -- Configuración final: para que cualquier conexión nueva (incluida
 -- la app Python) busque las tablas en el esquema prototipo por defecto
