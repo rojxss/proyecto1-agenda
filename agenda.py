@@ -954,7 +954,10 @@ class AppAgenda(ctk.CTk):
         self.fecha_tarea_limite = self.crear_selector_fecha(form)
         self.fecha_tarea_limite.pack(fill="x", padx=10, pady=4)
 
-        ctk.CTkButton(form, text="🧹 Nueva / Limpiar", command=self.limpiar_form_tareas, fg_color="gray").pack(fill="x", padx=10, pady=(16, 5))
+        ctk.CTkButton(form, text="➕ Crear tarea", command=self.agregar_tarea).pack(fill="x", padx=10, pady=(16, 5))
+        ctk.CTkButton(form, text="💾 Actualizar seleccionada", command=self.actualizar_tarea).pack(fill="x", padx=10, pady=5)
+        ctk.CTkButton(form, text="🧹 Nueva / Limpiar", command=self.limpiar_form_tareas, fg_color="gray").pack(fill="x", padx=10, pady=5)
+        ctk.CTkButton(form, text="🗑️ Eliminar seleccionada", command=self.eliminar_tarea, fg_color="#b33939", hover_color="#8f2d2d").pack(fill="x", padx=10, pady=5)
 
         self.limpiar_form_tareas()
 
@@ -989,6 +992,62 @@ class AppAgenda(ctk.CTk):
         self.combo_tarea_prioridad.set("media")
         self.combo_tarea_estado.set("pendiente")
         self.establecer_fecha(self.fecha_tarea_limite, datetime.now())
+
+    def _datos_tarea_formulario(self):
+        titulo = self.entry_tarea_titulo.get().strip()
+        descripcion = self.entry_tarea_descripcion.get().strip()
+        evento = self.eventos_combo.get(self.combo_tarea_evento.get())
+        valor_resp = self.combo_tarea_responsable.get()
+        responsable = None if valor_resp == "Sin responsable asignado" else self.usuarios_combo.get(valor_resp)
+        prioridad = self.combo_tarea_prioridad.get()
+        estado = self.combo_tarea_estado.get()
+        fecha_limite = self.obtener_fecha(self.fecha_tarea_limite)
+        if not titulo:
+            raise ValueError("Indica el título de la tarea.")
+        if evento is None:
+            raise ValueError("Selecciona el evento al que pertenece esta tarea.")
+        return titulo, descripcion or None, prioridad, estado, fecha_limite, evento, responsable
+
+    def agregar_tarea(self):
+        try:
+            datos = self._datos_tarea_formulario()
+            self.ejecutar_consulta("""
+                INSERT INTO tareas
+                (titulo, descripcion, prioridad, estado, fecha_limite, id_evento, id_usuario_responsable)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, datos)
+            self.limpiar_form_tareas(); self.cargar_datos_tareas()
+            messagebox.showinfo("Éxito", "Tarea creada correctamente.")
+        except Exception as e:
+            messagebox.showerror("No se pudo crear la tarea", str(e))
+
+    def actualizar_tarea(self):
+        tid = self.tarea_seleccionada_id()
+        if tid is None:
+            return messagebox.showwarning("Selección requerida", "Selecciona una tarea para actualizar.")
+        try:
+            titulo, descripcion, prioridad, estado, fecha_limite, evento, responsable = self._datos_tarea_formulario()
+            self.ejecutar_consulta("""
+                UPDATE tareas SET titulo=%s, descripcion=%s, prioridad=%s, estado=%s,
+                fecha_limite=%s, id_evento=%s, id_usuario_responsable=%s WHERE id_tarea=%s
+            """, (titulo, descripcion, prioridad, estado, fecha_limite, evento, responsable, tid))
+            self.cargar_datos_tareas()
+            messagebox.showinfo("Éxito", "Tarea actualizada.")
+        except Exception as e:
+            messagebox.showerror("No se pudo actualizar", str(e))
+
+    def eliminar_tarea(self):
+        tid = self.tarea_seleccionada_id()
+        if tid is None:
+            return messagebox.showwarning("Selección requerida", "Selecciona una tarea.")
+        if not messagebox.askyesno("Confirmar", "¿Eliminar la tarea seleccionada?"):
+            return
+        try:
+            self.ejecutar_consulta("DELETE FROM tareas WHERE id_tarea=%s", (tid,))
+            self.limpiar_form_tareas(); self.cargar_datos_tareas()
+            messagebox.showinfo("Eliminada", "Tarea eliminada.")
+        except Exception as e:
+            messagebox.showerror("No se pudo eliminar", str(e))
 
     def cargar_datos_tareas(self):
         try:
