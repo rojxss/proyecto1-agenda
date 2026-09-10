@@ -34,6 +34,7 @@ class AppAgenda(ctk.CTk):
         self.categorias_combo = {}
         self.categorias_padre_combo = {}
         self.ubicaciones_combo = {}
+        self.eventos_combo = {}
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -133,6 +134,7 @@ class AppAgenda(ctk.CTk):
             ("Eventos", "🗓️"),
             ("Ubicaciones", "📍"),
             ("Disponibilidad", "🕒"),
+            ("Tareas", "✅"),
         ], start=2):
             btn = ctk.CTkButton(
                 self.sidebar_frame, text=f"{icono}  {nombre}",
@@ -146,7 +148,7 @@ class AppAgenda(ctk.CTk):
             self.sidebar_frame,
             text="🔄  Recargar datos",
             command=self.actualizar_todas_las_tablas
-        ).grid(row=7, column=0, padx=15, pady=(20, 5), sticky="ew")
+        ).grid(row=8, column=0, padx=15, pady=(20, 5), sticky="ew")
 
         ctk.CTkLabel(self.sidebar_frame, text="APARIENCIA", font=ctk.CTkFont(size=11, weight="bold")).grid(
             row=11, column=0, padx=20, pady=(10, 5), sticky="w"
@@ -173,12 +175,14 @@ class AppAgenda(ctk.CTk):
         self.tab_eventos = self.tabview.add("Eventos")
         self.tab_ubicaciones = self.tabview.add("Ubicaciones")
         self.tab_disponibilidad = self.tabview.add("Disponibilidad")
+        self.tab_tareas = self.tabview.add("Tareas")
 
         self.configurar_pestana_usuarios()
         self.configurar_pestana_categorias()
         self.configurar_pestana_eventos()
         self.configurar_pestana_ubicaciones()
         self.configurar_pestana_disponibilidad()
+        self.configurar_pestana_tareas()
         self.seleccionar_modulo("Usuarios")
 
     def al_cambiar_pestana(self):
@@ -620,6 +624,11 @@ class AppAgenda(ctk.CTk):
             self.combo_ev_usuario.configure(values=valores_u)
             self.combo_ev_categoria.configure(values=valores_c)
             self.combo_ev_ubicacion.configure(values=valores_ub)
+
+            self.eventos_combo = {}
+            for row in rows:
+                etiqueta_evento = f"{row[6]} — #{row[0]}"
+                self.eventos_combo[etiqueta_evento] = row[0]
         except Exception as e:
             print(f"Error cargando eventos: {e}")
 
@@ -891,6 +900,41 @@ class AppAgenda(ctk.CTk):
         except Exception as e:
             print(f"Error cargando disponibilidad: {e}")
 
+    # -------------------- TAREAS --------------------
+
+    def configurar_pestana_tareas(self):
+        self.crear_encabezado(
+            self.tab_tareas, "Tareas",
+            "Subtareas asociadas a cada evento, con responsable, prioridad y estado."
+        )
+
+        cuerpo = ctk.CTkFrame(self.tab_tareas, fg_color="transparent")
+        cuerpo.pack(fill="both", expand=True, padx=10, pady=5)
+
+        self.tree_tareas = self.crear_treeview(
+            cuerpo,
+            ("ID", "Título", "Evento", "Responsable", "Prioridad", "Estado", "Fecha límite"),
+            (60, 180, 160, 160, 90, 110, 110)
+        )
+
+    def cargar_datos_tareas(self):
+        try:
+            rows = self.ejecutar_consulta("""
+                SELECT t.id_tarea, t.titulo, e.titulo, u.nombre, u.apellido,
+                       t.prioridad, t.estado, t.fecha_limite
+                FROM tareas t
+                JOIN eventos e ON e.id_evento = t.id_evento
+                LEFT JOIN usuarios u ON u.id_usuario = t.id_usuario_responsable
+                ORDER BY t.fecha_limite NULLS LAST, t.id_tarea DESC
+            """, fetch=True)
+            for item in self.tree_tareas.get_children(): self.tree_tareas.delete(item)
+            for row in rows:
+                responsable = f"{row[3]} {row[4]}" if row[3] else "Sin asignar"
+                fecha_limite = row[7].strftime("%Y-%m-%d") if hasattr(row[7], "strftime") else (row[7] or "")
+                self.tree_tareas.insert("", "end", values=(row[0], row[1], row[2], responsable, row[5], row[6], fecha_limite))
+        except Exception as e:
+            print(f"Error cargando tareas: {e}")
+
     # -------------------- REFRESCO GENERAL --------------------
 
     def actualizar_todas_las_tablas(self):
@@ -899,6 +943,7 @@ class AppAgenda(ctk.CTk):
         self.cargar_datos_ubicaciones()
         self.cargar_datos_eventos()
         self.cargar_datos_disponibilidad()
+        self.cargar_datos_tareas()
 
 
 if __name__ == "__main__":
