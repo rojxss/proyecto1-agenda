@@ -13,7 +13,7 @@ Ampliación de una base de datos y aplicación de agenda ya existente, agregando
 ## Tecnologías
 
 - **Base de datos:** PostgreSQL 18
-- **Aplicación:** Python (customtkinter, psycopg2, tkinter, tkcalendar)
+- **Aplicación:** Python 
 
 ## Estructura del repositorio
 
