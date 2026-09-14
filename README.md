@@ -47,9 +47,9 @@ proyecto1-agenda/
 
 La aplicación cuenta con 6 pestañas, cada una con operaciones CRUD completas (crear, consultar, actualizar, eliminar):
 
-- **Usuarios** — gestión de usuarios de la agenda.
-- **Categorías** — categorías jerárquicas de eventos (padre/hijo).
-- **Eventos** — programación de eventos, con propietario, categoría y ubicación.
-- **Ubicaciones** — salas y espacios, con prevención de traslapes de horario.
-- **Disponibilidad** — bloques de horario libre por usuario.
-- **Tareas** — subtareas por evento, con responsable, prioridad y estado.
+- **Usuarios** - gestión de usuarios de la agenda.
+- **Categorías** - categorías jerárquicas de eventos (padre/hijo).
+- **Eventos** - programación de eventos, con propietario, categoría y ubicación.
+- **Ubicaciones** - salas y espacios, con prevención de traslapes de horario.
+- **Disponibilidad** - bloques de horario libre por usuario.
+- **Tareas** - subtareas por evento, con responsable, prioridad y estado.
