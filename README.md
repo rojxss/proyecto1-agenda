@@ -1,4 +1,4 @@
-# Proyecto 1 — Ampliación de Base de Datos: Agenda Digital "Tres Patitos"
+# Proyecto 1 - Ampliación de Base de Datos: Agenda Digital "Tres Patitos"
 
 Ampliación de una base de datos y aplicación de agenda ya existente, agregando tres módulos nuevos de gestión mediante PostgreSQL y una interfaz de escritorio en Python.
 
@@ -13,7 +13,7 @@ Ampliación de una base de datos y aplicación de agenda ya existente, agregando
 ## Tecnologías
 
 - **Base de datos:** PostgreSQL 18
-- **Aplicación:** Python (customtkinter, psycopg2, tkinter, tkcalendar)
+- **Aplicación:** Python 
 
 ## Estructura del repositorio
 
