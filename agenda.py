@@ -25,7 +25,7 @@ class AppAgenda(ctk.CTk):
         self.conn_params = {
             "dbname": "agenda",
             "user": "postgres",
-            "password": "Vacaloca2.0",
+            "password": "Contraseña aquí",
             "host": "localhost",
             "port": "5432",
         }
